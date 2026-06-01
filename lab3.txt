@@ -1,0 +1,211 @@
+create database labb3;
+use labb3;
+
+create table faculty (
+    id int primary key identity(1,1),
+    faculty_name nvarchar(50) not null
+);
+
+create table form (
+    id int primary key identity(1,1),
+    form_name nvarchar(50) not null
+);
+
+create table hours (
+    id int primary key identity(1,1),
+    course int not null,
+    faculty_id int not null,
+    form_id int not null,
+    all_h int,
+    inclass_h int,
+    constraint fk_hours_faculty foreign key (faculty_id) references faculty(id),
+    constraint fk_hours_form foreign key (form_id) references form(id)
+);
+
+create table stud (
+    id int primary key identity(1,1),
+    last_name nvarchar(25) not null,
+    f_name nvarchar(25) not null,
+    s_name nvarchar(25),
+    br_date date,
+    in_date date,
+    exm float
+);
+
+create table process (
+    stud_id int not null,
+    hours_id int not null,
+    constraint pk_process primary key (stud_id, hours_id),
+    constraint fk_process_stud foreign key (stud_id) references stud(id),
+    constraint fk_process_hours foreign key (hours_id) references hours(id)
+);
+
+insert into faculty (faculty_name) values
+('ФПМИ'),
+('ФЭУ'),
+('ФКТИ');
+
+insert into form (form_name) values
+('очная'),
+('Заочная');
+
+insert into hours (course, faculty_id, form_id, all_h, inclass_h) values
+(1, 1, 1, 305, 175),
+(1, 1, 2, 285, 145),
+(2, 2, 1, 325, 195),
+(2, 2, 2, 295, 155),
+(3, 3, 1, 345, 205),
+(3, 3, 2, 315, 165),
+(4, 1, 1, 365, 215),
+(4, 2, 1, 335, 185),
+(1, 3, 2, 275, 135),
+(2, 1, 2, 255, 125);
+
+insert into stud (last_name, f_name, s_name, br_date, in_date, exm) values
+('Иванов', 'Алексей', null, '2000-02-10', '2018-09-01', 7.4),
+('Петров', 'Илья', 'С', '1999-12-18', '2017-09-01', 8.0),
+('Сидоренко', 'Максим', null, '2001-03-03', '2019-09-01', 6.8),
+('Коваленко', 'Мария', 'И', '2000-06-20', '2018-09-01', 9.1),
+('Горбунов', 'Антон', null, '1998-10-29', '2016-09-01', 5.7),
+('Шевченко', 'Олег', 'Р', '2001-05-22', '2019-09-01', 7.1),
+('Мельник', 'Татьяна', null, '1999-08-15', '2017-09-01', 8.6),
+('Кравцов', 'Дмитрий', 'Е', '2000-01-30', '2018-09-01', 6.4),
+('Семенова', 'Юлия', null, '2001-07-11', '2019-09-01', 9.2),
+('Орлов', 'Павел', 'Г', '1998-09-05', '2016-09-01', 7.2);
+
+insert into process (stud_id, hours_id) values
+(1,1),(2,2),(3,3),(4,4),(5,5),
+(6,6),(7,7),(8,8),(9,9),(10,10);
+
+select stud.last_name, stud.f_name, stud.s_name, faculty.faculty_name, hours.course
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+join form on hours.form_id = form.id
+where form.form_name = 'Заочная'
+  and datediff(year, stud.br_date, getdate()) < 37;
+
+select faculty.faculty_name, count(stud.id) as student_count
+from faculty
+join hours on faculty.id = hours.faculty_id
+join process on hours.id = process.hours_id
+join stud on process.stud_id = stud.id
+group by faculty.faculty_name;
+
+select form.form_name, count(stud.id) as student_count
+from form
+join hours on form.id = hours.form_id
+join process on hours.id = process.hours_id
+join stud on process.stud_id = stud.id
+group by form.form_name;
+
+select faculty.faculty_name, avg(datediff(year, stud.br_date, getdate())) as avg_age
+from faculty
+join hours on faculty.id = hours.faculty_id
+join process on hours.id = process.hours_id
+join stud on process.stud_id = stud.id
+group by faculty.faculty_name;
+
+select stud.last_name, stud.f_name, stud.in_date, faculty.faculty_name, hours.course, form.form_name
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+join form on hours.form_id = form.id
+where stud.s_name is null;
+
+select faculty.faculty_name, count(stud.id) as cnt
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+where year(stud.in_date) = 2015
+group by faculty.faculty_name
+order by cnt desc;
+
+select faculty.faculty_name, form.form_name, count(stud.id) as cnt
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+join form on hours.form_id = form.id
+where year(stud.in_date) = 2014
+group by faculty.faculty_name, form.form_name;
+
+select distinct faculty.faculty_name
+from faculty
+join hours on faculty.id = hours.faculty_id
+join form on hours.form_id = form.id
+where form.form_name = 'Заочная';
+
+select faculty.faculty_name, form.form_name, hours.course
+from faculty
+join hours on faculty.id = hours.faculty_id
+join form on hours.form_id = form.id
+order by faculty.faculty_name, form.form_name, hours.course;
+
+select faculty.faculty_name, form.form_name, count(stud.id) as cnt
+from faculty
+join hours on faculty.id = hours.faculty_id
+join form on hours.form_id = form.id
+join process on hours.id = process.hours_id
+join stud on process.stud_id = stud.id
+group by faculty.faculty_name, form.form_name
+order by faculty.faculty_name;
+
+select faculty.faculty_name, form.form_name, count(stud.id) as cnt
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+join form on hours.form_id = form.id
+where hours.course in (1, 3)
+group by faculty.faculty_name, form.form_name;
+
+select faculty.faculty_name, hours.course, count(stud.id) as cnt
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+where stud.s_name is null
+group by faculty.faculty_name, hours.course
+order by faculty.faculty_name, hours.course;
+
+select faculty.faculty_name, hours.course, count(stud.id) as cnt
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+where stud.exm > 7.5
+group by faculty.faculty_name, hours.course
+order by faculty.faculty_name, hours.course;
+
+select faculty.faculty_name, form.form_name, count(stud.id) as cnt
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+join form on hours.form_id = form.id
+where datediff(year, stud.br_date, getdate()) > 45
+group by faculty.faculty_name, form.form_name
+order by faculty.faculty_name;
+
+select faculty.faculty_name, form.form_name, hours.course, count(stud.id) as cnt
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+join form on hours.form_id = form.id
+where datediff(year, stud.br_date, getdate()) < 27
+group by faculty.faculty_name, form.form_name, hours.course
+order by faculty.faculty_name, form.form_name, hours.course;
+
+select faculty.faculty_name, count(stud.id) as cnt
+from stud
+join process on stud.id = process.stud_id
+join hours on process.hours_id = hours.id
+join faculty on hours.faculty_id = faculty.id
+where stud.last_name like 'С%'
+group by faculty.faculty_name
+order by faculty.faculty_name;

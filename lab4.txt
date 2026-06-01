@@ -1,0 +1,163 @@
+create database labb4;
+use labb4;
+
+create table faculty (
+    id int primary key identity(1,1),
+    faculty_name nvarchar(50) not null
+);
+
+create table form (
+    id int primary key identity(1,1),
+    form_name nvarchar(50) not null
+);
+
+create table hours (
+    id int primary key identity(1,1),
+    course int not null,
+    faculty
+_id int not null,
+    form_id int not null,
+    all_h int,
+    inclass_h int,
+    constraint fk_hours_fac foreign key (faculty_id) references faculty(id),
+    constraint fk_hours_form foreign key (form_id) references form(id)
+);
+
+create table stud (
+    id int primary key identity(1,1),
+    last_name nvarchar(25) not null,
+    f_name nvarchar(25) not null,
+    s_name nvarchar(25),
+    br_date date,
+    in_date date,
+    exm float
+);
+
+create table process (
+    stud_id int not null,
+    hours_id int not null,
+    constraint pk_process primary key (stud_id, hours_id),
+    constraint fk_process_stud foreign key (stud_id) references stud(id),
+    constraint fk_process_hours foreign key (hours_id) references hours(id)
+);
+
+insert into faculty (faculty_name) values
+('ФПМИ'),
+('ФЭУ'),
+('ФКТИ');
+
+insert into form (form_name) values
+('Очная'),
+('Заочная');
+
+insert into hours (course, faculty_id, form_id, all_h, inclass_h) values
+(1, 1, 1, 305, 175),
+(1, 1, 2, 285, 145),
+(2, 2, 1, 325, 195),
+(2, 2, 2, 295, 155),
+(3, 3, 1, 345, 205),
+(3, 3, 2, 315, 165),
+(4, 1, 1, 365, 215),
+(4, 2, 1, 335, 185),
+(1, 3, 2, 275, 135),
+(2, 1, 2, 255, 125);
+
+insert into stud (last_name, f_name, s_name, br_date, in_date, exm) values
+('Иванов', 'Алексей', null, '2000-02-10', '2018-09-01', 7.4),
+('Петров', 'Илья', 'С', '1999-12-18', '2017-09-01', 8.0),
+('Сидоренко', 'Максим', null, '2001-03-03', '2019-09-01', 6.8),
+('Коваленко', 'Мария', 'И', '2000-06-20', '2018-09-01', 9.1),
+('Горбунов', 'Антон', null, '1998-10-29', '2016-09-01', 5.7),
+('Шевченко', 'Олег', 'Р', '2001-05-22', '2019-09-01', 7.1),
+('Мельник', 'Татьяна', null, '1999-08-15', '2017-09-01', 8.6),
+('Кравцов', 'Дмитрий', 'Е', '2000-01-30', '2018-09-01', 6.4),
+('Семенова', 'Юлия', null, '2001-07-11', '2019-09-01', 9.2),
+('Орлов', 'Павел', 'Г', '1998-09-05', '2016-09-01', 7.2);
+
+insert into process (stud_id, hours_id) values
+(1,1),(2,2),(3,3),(4,4),(5,5),
+(6,6),(7,7),(8,8),(9,9),(10,10);
+
+create procedure count_stud_fac_form
+    @faculty_name nvarchar(50),
+    @form_name nvarchar(50)
+as
+begin
+    select count(stud.id) as student_count
+    from stud
+    join process on stud.id = process.stud_id
+    join hours on process.hours_id = hours.id
+    join faculty on hours.faculty_id = faculty.id
+    join form on hours.form_id = form.id
+    where faculty.faculty_name = @faculty_name
+      and form.form_name = @form_name;
+end;
+
+create procedure count_subjects
+    @cnt_fpk int output,
+    @cnt_fpm int output,
+    @cnt_total int output,
+    @cnt_same int output
+as
+begin
+    select @cnt_fpk = count(*)
+    from hours
+    join faculty on hours.faculty_id = faculty.id
+    where faculty.faculty_name = 'ФЭУ';
+
+    select @cnt_fpm = count(*)
+    from hours
+    join faculty on hours.faculty_id = faculty.id
+    where faculty.faculty_name = 'ФПМИ';
+
+    select @cnt_total = count(*) from hours;
+
+    select @cnt_same = count(*)
+    from hours
+    group by course
+    having count(*) > 1;
+
+    print 'ФЭУ: ' + cast(@cnt_fpk as nvarchar);
+    print 'ФПМИ: ' + cast(@cnt_fpm as nvarchar);
+    print 'Всего: ' + cast(@cnt_total as nvarchar);
+    print 'Одинаковых: ' + cast(@cnt_same as nvarchar);
+end;
+
+create procedure add_student_to_faculty
+    @last nvarchar(25),
+    @first nvarchar(25),
+    @sname nvarchar(25) = null,
+    @br date,
+    @in_d date,
+    @faculty_name nvarchar(50),
+    @form_name nvarchar(50)
+as
+begin
+    declare @hours_id int;
+
+    select @hours_id = hours.id
+    from hours
+    join faculty on hours.faculty_id = faculty.id
+    join form on hours.form_id = form.id
+    where faculty.faculty_name = @faculty_name
+      and form.form_name = @form_name
+      and hours.course = 1;
+
+    insert into stud (last_name, f_name, s_name, br_date, in_date, exm)
+    values (@last, @first, @sname, @br, @in_d, 0);
+
+    declare @new_id int;
+    select @new_id = max(id) from stud;
+
+    insert into process (stud_id, hours_id)
+    values (@new_id, @hours_id);
+
+    print N'Студент добавлен';
+end;
+
+exec count_stud_fac_form 'ФПМИ', 'Очная';
+
+declare @a int, @b int, @c int, @d int;
+exec count_subjects @a output, @b output, @c output, @d output;
+
+exec add_student_to_faculty 'Новиков', 'Сергей', null, '2002-05-01', '2020-09-01', 'ФПМИ', 'Очная';
