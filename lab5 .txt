@@ -1,0 +1,110 @@
+use Lz_5
+
+CREATE TABLE Employess(
+	EmployeedID INT PRIMARY KEY IDENTITY(1,1),
+	FirstName NVARCHAR(50),
+	LastName NVARCHAR(50),
+	BirthDate DATE
+);
+
+CREATE TABLE Categories (
+    CategoryID INT IDENTITY(1,1) PRIMARY KEY,
+    CategoryName NVARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Products (
+    ProductID INT IDENTITY(1,1) PRIMARY KEY,
+    ProductName NVARCHAR(100) NOT NULL,
+    CategoryID INT NOT NULL,
+    Price INT NOT NULL,
+    CONSTRAINT FK_Products_Categories FOREIGN KEY (CategoryID) 
+        REFERENCES Categories(CategoryID)
+);
+
+INSERT INTO Employess VALUES ('Иван', 'Золо', '19990314');
+INSERT INTO Employess VALUES ('Александр', 'Яковлев', '20000117');
+INSERT INTO Employess VALUES ('Наруто', 'Уземаки', '19700220');
+INSERT INTO Employess VALUES ('Артур', 'Микайлян', '19850703');
+INSERT INTO Employess VALUES ('Ждамал', 'Мухтабек', '19980213');
+
+INSERT INTO Categories (CategoryName)
+VALUES 
+    ('Электроника'),
+    ('Бытовая техника'),
+    ('Книги');
+
+INSERT INTO Products (ProductName, CategoryID, Price)
+VALUES 
+    ('Ноутбук', 1, 75000),
+    ('Смартфон', 1, 45000),
+    ('Беспроводные наушники', 1, 12000),
+    ('Стиральная машина', 2, 35000),
+    ('Холодильник', 2, 55000),
+    ('Микроволновая печь', 2, 8000),
+    ('Учебник по SQL', 3, 1200),
+    ('Художественный роман', 3, 850);
+-- Задание 1 --
+Go
+
+CREATE FUNCTION AGE_Employess (@BirthDate DATE)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @Age INT;
+    SET @Age = DATEDIFF(YEAR, @BirthDAte, GETDATE());
+    RETURN @Age
+END;
+
+GO
+
+SELECT FirstName, LastName, dbo.AGE_Employess(BirthDate) FROM Employess WHERE dbo.AGE_Employess(BirthDate) > 30
+
+-- Задание 2 --
+
+Go
+
+CREATE FUNCTION ChooseCategory (@CategoryNAme NVARCHAR(40))
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT P.ProductID, P.ProductName, P.Price FROM Products P
+    INNER JOIN Categories C ON P.CategoryID = C.CategoryID
+    WHERE C.CategoryName = @CategoryName
+);
+
+GO
+
+SELECT ProductID, ProductName, Price FROM ChooseCategory('Электроника');
+
+-- Задание 3 --
+
+Go
+
+CREATE FUNCTION FormatingName (@FirstName NVARCHAR(40), @LastName NVARCHAR(40))
+RETURNS NVARCHAR(100)
+AS
+BEGIN
+	RETURN @FirstName + ' ' + @LastName
+END;
+
+GO
+
+SELECT FirstName, LastName, dbo.FormatingName(FirstName, LastName) AS FullName FROM Employess;
+
+-- Задание 4 -- 
+go
+
+CREATE FUNCTION AvgPrice (@CategoryID INT)
+RETURNS INT
+AS
+BEGIN
+    RETURN (
+        SELECT ISNULL(AVG(Price), 0) 
+        FROM Products 
+        WHERE CategoryID = @CategoryID
+    );
+END;
+GO
+
+SELECT CategoryName, dbo.AvgPrice(CategoryID) AS AveragePrice FROM Categories;
